@@ -1,37 +1,45 @@
+const { SCORING, ScoredField } = require('../../utils/confidence');
+
 module.exports = {
     name: 'shopee',
-    matchDomain: /shopee\.com\.br|shopee/,
+    matchDomain: /shopee\.com/,
     useHeadless: true,
-    forceHeadless: true, // Pula o cheerio pq a estática só traz a tela de Login Laranja
+    forceHeadless: true, 
 
     async extractHeadless(page) {
-        // A Shopee necessita de um Headless Extract dedicado
-        let nome = '';
-        let preco = '';
-        let imagem = '';
+        let fields = { nome: [], preco: [], imagem: [] };
 
         try {
-            await page.waitForSelector('span.Y35YOM, .WBK02V', { timeout: 8000 }).catch(() => {});
+            await page.waitForSelector('span.Y35YOM, .WBK02V, .IM1m0s', { timeout: 12000 }).catch(() => {});
             
-            nome = await page.evaluate(() => {
-                const el = document.querySelector('span.Y35YOM, .WBK02V span');
+            let nomeTitle = await page.evaluate(() => {
+                const el = document.querySelector('span.Y35YOM') || 
+                           document.querySelector('.WBK02V span') ||
+                           document.querySelector('.IM1m0s'); // Nova classe shopee
                 if (el) return el.innerText.trim();
-                const metaOgUrl = document.querySelector('meta[property="og:title"]');
-                return metaOgUrl ? metaOgUrl.content : '';
+                return '';
             });
 
-            // Se a Shopee mandou o título genérico de Bloqueio/Login ("Shopee Brasil..."), nós recusamos para não sujar o input!
-            if (nome && (nome.includes('Shopee Brasil |') || nome.includes('Faça Login'))) {
-                nome = ''; 
+            // Rejeita bloqueios Shopee
+            if (nomeTitle && !nomeTitle.includes('Shopee Brasil |') && !nomeTitle.includes('Faça Login')) {
+                fields.nome.push(new ScoredField(nomeTitle, 'shopee:headless:title', 'headless', SCORING.ADAPTER_SPECIFIC_HIGH));
             }
 
-            preco = await page.evaluate(() => {
-                const el = document.querySelector('.pqy9al, .G27NVy');
+            let pValue = await page.evaluate(() => {
+                const el = document.querySelector('.pqy9al') || 
+                           document.querySelector('.G27NVy') ||
+                           document.querySelector('.pqy9al');
                 return el ? el.innerText.trim() : '';
             });
 
-            imagem = await page.evaluate(() => {
-                const img = document.querySelector('.Kpz1bX, .Bf1r1K, ._1pZ_w');
+            if(pValue) {
+                fields.preco.push(new ScoredField(pValue, 'shopee:headless:price', 'headless', SCORING.ADAPTER_SPECIFIC_HIGH));
+            }
+
+            let imgSrc = await page.evaluate(() => {
+                const img = document.querySelector('.Kpz1bX') || 
+                            document.querySelector('.Bf1r1K') ||
+                            document.querySelector('._1pZ_w');
                 if (img) {
                    const bg = img.style.backgroundImage;
                    if (bg) return bg.slice(5, -2);
@@ -41,10 +49,14 @@ module.exports = {
                 return metaImg ? metaImg.content : '';
             });
 
+            if(imgSrc) {
+                fields.imagem.push(new ScoredField(imgSrc, 'shopee:headless:img', 'headless', SCORING.ADAPTER_SPECIFIC_HIGH));
+            }
+
         } catch (e) {
              console.error('Shopee falhou em Headless!', e);
         }
 
-        return { nome, preco, imagem };
+        return fields;
     }
 };

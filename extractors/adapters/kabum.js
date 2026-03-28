@@ -1,40 +1,23 @@
 const cheerio = require('cheerio');
+const { SCORING, ScoredField } = require('../../utils/confidence');
 
 module.exports = {
     name: 'kabum',
     matchDomain: /kabum\.com\.br/,
-    useHeadless: false, // Kabum normally allows static fetching beautifully
-    
+
     async extractStatic(html, genericData) {
         const $ = cheerio.load(html);
-        let nome = genericData.nome;
-        let preco = genericData.preco;
-        let imagem = genericData.imagem;
+        let fields = { nome: [], preco: [], imagem: [] };
 
-        // Titulo geralmente é o H1
-        if(!nome) {
-            nome = $('h1').first().text().trim();
-        }
+        const title = $('h1').text().trim();
+        if(title) fields.nome.push(new ScoredField(title, 'kabum:h1', 'static', SCORING.ADAPTER_SPECIFIC_HIGH));
 
-        // Preço à vista puro e limpo
-        if(!preco) {
-            // A Kabum costuma usar h4 class="finalPrice"
-            const kPrice = $('.finalPrice').first().text().trim();
-            if(kPrice) {
-                preco = kPrice.replace('R$ ', '').replace('R$', '').trim();
-            } else {
-                // Tenta preco listado normal
-                const altPrice = $('h4:contains("R$")').first().text().trim() || $('b:contains("R$")').first().text().trim();
-                if(altPrice) preco = altPrice.replace('R$ ', '').trim();
-            }
-        }
+        let ptPrice = $('.finalPrice').first().text().trim() || $('h4.sc-5492fae6-2').first().text().trim();
+        if(ptPrice) fields.preco.push(new ScoredField(ptPrice, 'kabum:finalPrice', 'static', SCORING.ADAPTER_SPECIFIC_HIGH));
 
-        // Imagem 
-        if(!imagem) {
-            const imgEl = $('.carousel figure img').first() || $('.gallery figure img').first();
-            if(imgEl) imagem = imgEl.attr('src');
-        }
+        let imgEl = $('.selectedImage img').attr('src') || $('img.imageGallery').first().attr('src');
+        if(imgEl) fields.imagem.push(new ScoredField(imgEl, 'kabum:selectedImage', 'static', SCORING.ADAPTER_SPECIFIC_HIGH));
 
-        return { nome, preco, imagem };
+        return fields;
     }
 };

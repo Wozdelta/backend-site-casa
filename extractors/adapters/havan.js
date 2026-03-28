@@ -1,37 +1,23 @@
 const cheerio = require('cheerio');
+const { SCORING, ScoredField } = require('../../utils/confidence');
 
 module.exports = {
     name: 'havan',
     matchDomain: /havan\.com\.br/,
-    useHeadless: false, 
-    
+
     async extractStatic(html, genericData) {
         const $ = cheerio.load(html);
-        let nome = genericData.nome;
-        let preco = genericData.preco;
-        let imagem = genericData.imagem;
+        let fields = { nome: [], preco: [], imagem: [] };
 
-        // Se Metatags Genéricas e SEO não contiverem o H1 limpo
-        if(!nome) {
-            nome = $('h1').first().text().trim() || $('.vtex-store-components-3-x-productNameContainer span').text().trim();
-        }
+        const title = $('.product-name h1').text().trim() || $('.page-title h1').text().trim();
+        if(title) fields.nome.push(new ScoredField(title, 'havan:h1', 'static', SCORING.ADAPTER_SPECIFIC_HIGH));
 
-        // Preço da VTEX (Plataforma padrão de grandes varejos que a Havan usa)
-        if(!preco) {
-            const vtPrice = $('.vtex-store-components-3-x-sellingPriceValue').first().text().trim() || $('.vtex-product-price-1-x-sellingPriceValue').first().text().trim();
-            const altPrice = $('.price-tag').first().text().trim() || $('.price-best-price').last().text().trim();
+        const price = $('.price-box .price').first().text().trim();
+        if(price) fields.preco.push(new ScoredField(price, 'havan:price-box', 'static', SCORING.ADAPTER_SPECIFIC_HIGH));
 
-            const finalP = vtPrice || altPrice;
-            if(finalP) {
-                 preco = finalP.replace('R$', '').trim();
-            }
-        }
+        const img = $('.product-image-photo').attr('src');
+        if(img) fields.imagem.push(new ScoredField(img, 'havan:photo', 'static', SCORING.ADAPTER_SPECIFIC_HIGH));
 
-        // Imagem VTEX Padrao
-        if(!imagem) {
-            imagem = $('.vtex-store-components-3-x-productImageTag').attr('src') || $('img.vtex-store-components-3-x-imageElement').attr('src');
-        }
-
-        return { nome, preco, imagem };
+        return fields;
     }
 };

@@ -1,0 +1,37 @@
+{
+  "nome": "",
+  "preco": "",
+  "imagem": "https://http2.mlstatic.com/D_NQ_867748-MLA108503820943_032026-OO.webp",
+  "url": "https://www.mercadolivre.com.br/apple-iphone-13-128-gb-meia-noite/p/MLB19615024",
+  "origem": "mercadolivre",
+  "status": "partial",
+  "campos_preenchidos": [
+    "imagem"
+  ],
+  "analytics": {
+    "statusTecnico": "headless_upgrade",
+    "tempoTotalMs": 3359,
+    "report": {
+      "nomeVencedor": null,
+      "precoVencedor": null,
+      "imagemVencedor": {
+        "value": "https://http2.mlstatic.com/D_NQ_867748-MLA108503820943_032026-OO.webp",
+        "origin": "heuristic:first-img-body",
+        "layer": "headless_generic",
+        "score": 40
+      },
+      "todasExtrações": {
+        "nome": [],
+        "preco": [],
+        "imagem": [
+          {
+            "value": "https://http2.mlstatic.com/D_NQ_867748-MLA108503820943_032026-OO.webp",
+            "origin": "heuristic:first-img-body",
+            "layer": "headless_generic",
+            "score": 40
+          }
+        ]
+      }
+    }
+  }
+}

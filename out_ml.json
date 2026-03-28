@@ -1,0 +1,170 @@
+{
+  "nome": "Capacete Ciclismo Bike Giro Foray Preto Vermelho Original",
+  "preco": "",
+  "imagem": "https://http2.mlstatic.com/D_NQ_NP_726532-MLB74110475692_012024-O.webp",
+  "url": "https://www.mercadolivre.com.br/relogio-apple-watch-se-2022-gps-caixa-prateada/p/MLB19970921",
+  "origem": "mercadolivre",
+  "status": "partial",
+  "campos_preenchidos": [
+    "nome",
+    "imagem"
+  ],
+  "analytics": {
+    "statusTecnico": "headless_upgrade",
+    "tempoTotalMs": 4678,
+    "report": {
+      "nomeVencedor": {
+        "value": "Capacete Ciclismo Bike Giro Foray Preto Vermelho Original",
+        "origin": "json-ld:product.name",
+        "layer": "static_generic",
+        "score": 95
+      },
+      "precoVencedor": null,
+      "imagemVencedor": {
+        "value": "https://http2.mlstatic.com/D_NQ_NP_726532-MLB74110475692_012024-O.webp",
+        "origin": "json-ld:product.image",
+        "layer": "static_generic",
+        "score": 95
+      },
+      "todasExtrações": {
+        "nome": [
+          {
+            "value": "Capacete Ciclismo Bike Giro Foray Preto Vermelho Original",
+            "origin": "page:title",
+            "layer": "static_generic",
+            "score": 65
+          },
+          {
+            "value": "Capacete Ciclismo Bike Giro Foray Preto Vermelho Original",
+            "origin": "heuristic:h1",
+            "layer": "static_generic",
+            "score": 50
+          },
+          {
+            "value": "Capacete Ciclismo Bike Giro Foray Preto Vermelho Original",
+            "origin": "og:title",
+            "layer": "static_generic",
+            "score": 80
+          },
+          {
+            "value": "Capacete Ciclismo Bike Giro Foray Preto Vermelho Original",
+            "origin": "twitter:title",
+            "layer": "static_generic",
+            "score": 75
+          },
+          {
+            "value": "Capacete Ciclismo Bike Giro Foray Preto Vermelho Original",
+            "origin": "json-ld:product.name",
+            "layer": "static_generic",
+            "score": 95
+          },
+          {
+            "value": "Capacete Ciclismo Bike Giro Foray Preto Vermelho Original",
+            "origin": "ui-pdp-title",
+            "layer": "static",
+            "score": 92
+          },
+          {
+            "value": "Capacete Ciclismo Bike Giro Foray Preto Vermelho Original",
+            "origin": "catalog-title",
+            "layer": "static",
+            "score": 70
+          },
+          {
+            "value": "Capacete Ciclismo Bike Giro Foray Preto Vermelho Original",
+            "origin": "page:title",
+            "layer": "headless_generic",
+            "score": 65
+          },
+          {
+            "value": "Capacete Ciclismo Bike Giro Foray Preto Vermelho Original",
+            "origin": "heuristic:h1",
+            "layer": "headless_generic",
+            "score": 50
+          },
+          {
+            "value": "Capacete Ciclismo Bike Giro Foray Preto Vermelho Original",
+            "origin": "og:title",
+            "layer": "headless_generic",
+            "score": 80
+          },
+          {
+            "value": "Capacete Ciclismo Bike Giro Foray Preto Vermelho Original",
+            "origin": "twitter:title",
+            "layer": "headless_generic",
+            "score": 75
+          },
+          {
+            "value": "Capacete Ciclismo Bike Giro Foray Preto Vermelho Original",
+            "origin": "json-ld:product.name",
+            "layer": "headless_generic",
+            "score": 95
+          },
+          {
+            "value": "Capacete Ciclismo Bike Giro Foray Preto Vermelho Original",
+            "origin": "ui-pdp-title",
+            "layer": "static",
+            "score": 92
+          },
+          {
+            "value": "Capacete Ciclismo Bike Giro Foray Preto Vermelho Original",
+            "origin": "catalog-title",
+            "layer": "static",
+            "score": 70
+          }
+        ],
+        "preco": [],
+        "imagem": [
+          {
+            "value": "https://http2.mlstatic.com/D_NQ_NP_726532-MLB74110475692_012024-O.webp",
+            "origin": "og:image",
+            "layer": "static_generic",
+            "score": 80
+          },
+          {
+            "value": "https://http2.mlstatic.com/D_NQ_NP_726532-MLB74110475692_012024-O.webp",
+            "origin": "twitter:image",
+            "layer": "static_generic",
+            "score": 75
+          },
+          {
+            "value": "https://http2.mlstatic.com/D_NQ_NP_726532-MLB74110475692_012024-O.webp",
+            "origin": "json-ld:product.image",
+            "layer": "static_generic",
+            "score": 95
+          },
+          {
+            "value": "https://http2.mlstatic.com/D_NQ_NP_726532-MLB74110475692_012024-O.webp",
+            "origin": "ml-gallery-main",
+            "layer": "static",
+            "score": 92
+          },
+          {
+            "value": "https://http2.mlstatic.com/D_NQ_NP_726532-MLB74110475692_012024-O.webp",
+            "origin": "og:image",
+            "layer": "headless_generic",
+            "score": 80
+          },
+          {
+            "value": "https://http2.mlstatic.com/D_NQ_NP_726532-MLB74110475692_012024-O.webp",
+            "origin": "twitter:image",
+            "layer": "headless_generic",
+            "score": 75
+          },
+          {
+            "value": "https://http2.mlstatic.com/D_NQ_NP_726532-MLB74110475692_012024-O.webp",
+            "origin": "json-ld:product.image",
+            "layer": "headless_generic",
+            "score": 95
+          },
+          {
+            "value": "https://http2.mlstatic.com/D_NQ_NP_726532-MLB74110475692_012024-O.webp",
+            "origin": "ml-gallery-main",
+            "layer": "static",
+            "score": 92
+          }
+        ]
+      }
+    }
+  }
+}

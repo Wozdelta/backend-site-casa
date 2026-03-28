@@ -1,50 +1,40 @@
+const { SCORING, ScoredField } = require('../../utils/confidence');
+
 module.exports = {
     name: 'aliexpress',
     matchDomain: /aliexpress\.com/,
     useHeadless: true,
-    forceHeadless: true, // Aliexpress tem anti-bot pesadissimo e render server-side complexo
+    forceHeadless: true,
 
     async extractHeadless(page) {
-        let nome = '';
-        let preco = '';
-        let imagem = '';
+        let fields = { nome: [], preco: [], imagem: [] };
 
         try {
-            // Damos wait apenas no titulo ou preco pra garantir que carregou
             await page.waitForSelector('.product-title-text, h1[data-pl="product-title"], .price--originalText--ZcLWMGZ', { timeout: 12000 }).catch(() => {});
 
-            nome = await page.evaluate(() => {
-                let el = document.querySelector('.product-title-text') || 
-                         document.querySelector('h1[data-pl="product-title"]') ||
-                         document.querySelector('.title--wrap--jB_V_A');
+            let nome = await page.evaluate(() => {
+                let el = document.querySelector('.product-title-text') || document.querySelector('h1[data-pl="product-title"]');
                 return el ? el.innerText.trim() : '';
             });
+            if(nome) fields.nome.push(new ScoredField(nome, 'adapter:DOM:title', 'headless', SCORING.ADAPTER_SPECIFIC_HIGH));
 
-            preco = await page.evaluate(() => {
-                // Aliexpress muda as classes frequentemente, tentamos os wrappers mais recentes
-                let cur = document.querySelector('.price--originalText--ZcLWMGZ') || 
-                          document.querySelector('.product-price-value') ||
-                          document.querySelector('.price--currentPriceText--V8_y_b5');
-                if (cur && cur.innerText) {
-                    let val = cur.innerText.trim();
-                    val = val.replace('R$', '').trim();
-                    return val;
-                }
+            let preco = await page.evaluate(() => {
+                let cur = document.querySelector('.price--originalText--ZcLWMGZ') || document.querySelector('.product-price-value');
+                if (cur && cur.innerText) return cur.innerText.trim().replace('R$', '').trim();
                 return '';
             });
+            if(preco) fields.preco.push(new ScoredField(preco, 'adapter:DOM:price', 'headless', SCORING.ADAPTER_SPECIFIC_HIGH));
 
-            imagem = await page.evaluate(() => {
-                let img = document.querySelector('.magnifier-image') || 
-                          document.querySelector('.pdp-info-right img') ||
-                          document.querySelector('meta[property="og:image"]');
-                if (img) return img.src || img.content;
-                return '';
+            let imagem = await page.evaluate(() => {
+                let img = document.querySelector('.magnifier-image') || document.querySelector('.pdp-info-right img');
+                return img ? img.src : '';
             });
+            if(imagem) fields.imagem.push(new ScoredField(imagem, 'adapter:DOM:image', 'headless', SCORING.ADAPTER_SPECIFIC_HIGH));
 
         } catch (e) {
             console.error('Aliexpress adapter error:', e);
         }
 
-        return { nome, preco, imagem };
+        return fields;
     }
 };

@@ -2,109 +2,136 @@ const cacheService = require('./cacheService');
 const genericExtractor = require('../extractors/generic');
 const adapters = require('../extractors/adapters');
 const headless = require('../extractors/headless');
+const { determineWinner, generateMergeReport } = require('./mergeService');
+const { logExtractionResults } = require('./loggerService');
+const { normalizeUrl } = require('../utils/normalizer');
+const { SCORING } = require('../utils/confidence');
 
-async function processUrl(url) {
-    // 1. Verificacao de Cache (Super Rapido)
+async function processUrl(urlOriginal) {
+    const startTime = Date.now();
+    let statusTecnico = 'started';
+
+    // 1. URL Normalization
+    const url = normalizeUrl(urlOriginal);
+
+    // 2. Persistent Cache
     const cached = cacheService.get(url);
     if (cached) {
-        console.log('📦 Encontrado em cache. Retornando instante!');
+        logExtractionResults(url, Date.now() - startTime, cached, 'CACHED');
         return cached;
     }
 
-    // 2. Extrair Hostname para Identificacao
     let hostname;
     try {
         hostname = new URL(url).hostname;
     } catch(e) {
-        throw new Error("URL inválida.");
+        statusTecnico = 'invalid_url';
+        return generateErrorResponse(statusTecnico);
     }
     
     const adapter = adapters.getAdapter(hostname);
     
-    // Payload padronizado exigido
-    let result = {
-        nome: '',
-        preco: '',
-        imagem: '',
-        url: url,
-        origem: adapter ? adapter.name : 'generico',
-        status: 'error',
-        campos_preenchidos: []
+    // Este mapa é um balde onde todos os extratores (Estático, Headless, Adapter) vão jogar todos os ScoredFields!
+    let allExtractions = {
+        nome: [],
+        preco: [],
+        imagem: []
     };
 
     try {
-        console.log(`🧭 Iniciando Cascata -> Dominio: ${hostname}`);
-        
-        let extractedData = {};
-        
-        // Se a loja não requerer obrigatoriamente Puppeteer pra funcionar, tenta rápido com `fetch` (Cheerio)
-        let htmlSource = null;
+        // [Fase 1] Requisição Dinamica Rápida Estática (Cheerio / DOM)
         if (!adapter || !adapter.forceHeadless) {
-            console.log('⚡ Camada 1: Tentando Request Rápido Estático (Axios + Cheerio)...');
-            htmlSource = await genericExtractor.fetchHtml(url);
-            if(htmlSource) {
-                const genericData = genericExtractor.parseGenericSEO(htmlSource);
-                extractedData = { ...extractedData, ...genericData };
+            const { data: htmlSource, status } = await genericExtractor.fetchHtml(url);
+            statusTecnico = status;
+
+            if (htmlSource) {
+                // Generico extrai do JSON-LD, OG, etc
+                const genericFields = genericExtractor.parseGenericSEO(htmlSource, 'static_generic');
+                mergeArrays(allExtractions, genericFields);
                 
+                // Se o adapter roda estático, joga as regras customizadas tbm
                 if (adapter && adapter.extractStatic) {
-                    const adapterStatic = await adapter.extractStatic(htmlSource, extractedData);
-                    extractedData = { ...extractedData, ...adapterStatic };
+                    const adapterFields = await adapter.extractStatic(htmlSource, {});
+                    mergeArrays(allExtractions, adapterFields);
                 }
-            } else {
-                console.log('❌ Request Estático retornou vázio ou foi bloqueado pelo Anti-Bot (403).');
             }
         }
 
-        // Se o dominio exige Headless (ex: Shopee) ou se falhamos em capturar Nome e Preço (Defesa Implacável)
-        // Vamos engatilhar o Puppeteer (Motor Pesado e Lento, mas que lê a tela idêntica a um Humano real)
-        const needsHeadless = (!extractedData.nome || !extractedData.preco) 
-                              && (!adapter || adapter.useHeadless || adapter.forceHeadless || !adapter);
+        // [Fase 2] Avaliação Tática: Ligar robô Headless?
+        // Vamos verificar rapidamente se os melhores campos atuais alcançam um teto mínimo.
+        let reportMock = generateMergeReport(allExtractions);
+        const meta = reportMock.metadata;
+
+        // Se obrigar Headless (ex: Shopee) OU Falhamos Nome/Preço OU Score de Preço tá um Lixo (< 30) -> Sobe Headless Chrome!
+        const needsHeadless = (!meta.nomeVencedor || !meta.precoVencedor || meta.precoVencedor.score < 40) 
+                              || (!adapter || adapter.useHeadless || adapter.forceHeadless);
         
         if (needsHeadless) {
-            console.log(`🤖 Camada 2: Dados insuficientes / Anti-bot detectado. Ligando O Motor Universal Headless Browser...`);
-            // Passamos um adapter fake-generico se for null
-            const fallbackAdapter = adapter || { name: 'genérico-robusto', useHeadless: true };
-            const headlessData = await headless.extractWithBrowser(url, fallbackAdapter);
+            statusTecnico = statusTecnico === 'blocked' || statusTecnico === 'timeout' ? 'headless_forced' : 'headless_upgrade';
+            console.log(`🤖 Iniciando Motor Headless Universal. Motivo: [${statusTecnico}]`);
             
-            // O Headless pode ter encontrado algo que a Camada 1 não achou
-            if (headlessData.nome) extractedData.nome = headlessData.nome;
-            if (headlessData.preco) extractedData.preco = headlessData.preco;
-            if (headlessData.imagem) extractedData.imagem = headlessData.imagem;
+            const fallbackAdapter = adapter || { name: 'genérico-robusto', useHeadless: true };
+            const headlessFields = await headless.extractWithBrowser(url, fallbackAdapter);
+            
+            mergeArrays(allExtractions, headlessFields);
         }
 
-        // Merge dos resultados
-        result.nome = extractedData.nome || '';
-        result.preco = extractedData.preco || '';
-        result.imagem = extractedData.imagem || '';
+        // [Fase Final] - Tribunal. Quem ganhou as maiores pontuações?
+        const finalReport = generateMergeReport(allExtractions);
+        
+        // Formatar Resposta Clássica + Analytics pra não quebrar Front end
+        const finalResponse = {
+            nome: finalReport.dados.nome || '',
+            preco: finalReport.dados.preco || '',
+            imagem: finalReport.dados.imagem || '',
+            url: url,
+            origem: adapter ? adapter.name : 'generico',
+            status: 'error',
+            campos_preenchidos: [],
 
-        // Filtro Limpador Global de Formatação Errônea (ex: Mercado Livre/Amazon enviando 2899,,00)
-        if (result.preco) {
-            result.preco = result.preco.replace(/,,/g, ',');
-            result.preco = result.preco.replace(/\.,/g, ',');
+            // --- PAYLOAD RICO DE DEBUGGING PRA TELEMETRIA ----
+            analytics: {
+                statusTecnico: statusTecnico,
+                tempoTotalMs: Date.now() - startTime,
+                report: finalReport.metadata
+            }
+        };
+
+        // Status 
+        if(finalResponse.nome) finalResponse.campos_preenchidos.push('nome');
+        if(finalResponse.preco) finalResponse.campos_preenchidos.push('preco');
+        if(finalResponse.imagem) finalResponse.campos_preenchidos.push('imagem');
+
+        if (finalResponse.campos_preenchidos.length === 3) finalResponse.status = 'success';
+        else if (finalResponse.campos_preenchidos.length > 0) finalResponse.status = 'partial';
+        else finalResponse.status = 'error';
+
+        // Cache persistent
+        if (finalResponse.status !== 'error') {
+             cacheService.set(url, finalResponse);
         }
 
-        // Status Final
-        const preenchidos = [];
-        if(result.nome) preenchidos.push('nome');
-        if(result.preco) preenchidos.push('preco');
-        if(result.imagem) preenchidos.push('imagem');
-        result.campos_preenchidos = preenchidos;
-
-        if (preenchidos.length === 3) result.status = 'success';
-        else if (preenchidos.length > 0) result.status = 'partial';
-        else result.status = 'error';
-
-        // Salvar em cache (Apenas Sucesso ou Parcial bom)
-        if (result.status !== 'error') {
-            cacheService.set(url, result);
-        }
-
-        return result;
+        logExtractionResults(url, finalResponse.analytics.tempoTotalMs, finalReport, statusTecnico);
+        return finalResponse;
 
     } catch (err) {
-        console.error("Erro critico no processUrl:", err);
-        return result; 
+        console.error("Erro critico na Orquestração Master:", err);
+        return generateErrorResponse('parse_failed', err.message); 
     }
+}
+
+function mergeArrays(target, source) {
+    if(!source) return;
+    target.nome.push(...(source.nome || []));
+    target.preco.push(...(source.preco || []));
+    target.imagem.push(...(source.imagem || []));
+}
+
+function generateErrorResponse(statusCode, msg = '') {
+    return {
+        nome: '', preco: '', imagem: '', status: 'error', campos_preenchidos: [],
+        analytics: { statusTecnico: statusCode, msg }
+    };
 }
 
 module.exports = { processUrl };

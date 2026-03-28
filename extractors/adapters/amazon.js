@@ -1,29 +1,30 @@
 const cheerio = require('cheerio');
+const { SCORING, ScoredField } = require('../../utils/confidence');
 
 module.exports = {
     name: 'amazon',
     matchDomain: /amazon\.com\.br/,
-    useHeadless: true, // Amazon é fortíssima em block anti-scrap, muitas vezes dá 503 e pede CAPTCHA, então Headless em caso de falha é bom.
-    
-    // Amazon muda os seletores constantemente. O Genérico quase sempre funciona aqui (OG Tags).
+
     async extractStatic(html, genericData) {
         const $ = cheerio.load(html);
-        let nome = genericData.nome;
-        let preco = genericData.preco;
-        let imagem = genericData.imagem;
+        let fields = { nome: [], preco: [], imagem: [] };
 
-        if(!nome) nome = $('#productTitle').text().trim();
+        const title = $('#productTitle').text().trim();
+        if(title) fields.nome.push(new ScoredField(title, 'amazon:productTitle', 'static', SCORING.ADAPTER_SPECIFIC_HIGH));
+
+        // Preço na Amazon muda constantemente o id. Tentamos as principais 
+        let price = $('#corePrice_desktop .a-price-whole').first().text().trim() 
+                  + $('#corePrice_desktop .a-price-fraction').first().text().trim();
         
-        if(!preco) {
-            const pt = $('.a-price-whole').first().text().trim();
-            const fr = $('.a-price-fraction').first().text().trim();
-            if(pt) preco = pt.replace(/\./g, '').replace(/,/g, '') + (fr ? `,${fr}` : ',00');
+        if (!price || price === '') {
+            price = $('.a-price .a-offscreen').first().text().trim();
         }
+        
+        if(price) fields.preco.push(new ScoredField(price, 'amazon:priceBlock', 'static', SCORING.ADAPTER_SPECIFIC_HIGH));
 
-        if(!imagem) {
-            imagem = $('#landingImage').attr('data-old-hires') || $('#landingImage').attr('src');
-        }
+        let img = $('#imgBlkFront').attr('src') || $('#landingImage').attr('src');
+        if(img) fields.imagem.push(new ScoredField(img, 'amazon:landingImage', 'static', SCORING.ADAPTER_SPECIFIC_HIGH));
 
-        return { nome, preco, imagem };
+        return fields;
     }
 };
