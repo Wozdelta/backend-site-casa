@@ -1,9 +1,11 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+puppeteer.use(StealthPlugin());
 
 async function extractWithBrowser(url, adapter) {
     let browser;
     try {
-        console.log(`PUPPETEER iniciando para [${url}]...`);
+        console.log(`PUPPETEER INVISIVEL iniciando para [${url}]...`);
         browser = await puppeteer.launch({
             headless: 'new',
             args: ['--no-sandbox', '--disable-setuid-sandbox']

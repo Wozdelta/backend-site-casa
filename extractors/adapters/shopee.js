@@ -1,7 +1,8 @@
 module.exports = {
     name: 'shopee',
     matchDomain: /shopee\.com\.br|shopee/,
-    useHeadless: true, // ESSENCIAL! A Shopee é toda renderizada em Client-Side usando JS. O Cheerio não pega nada além da tela de carregamento laranja.
+    useHeadless: true,
+    forceHeadless: true, // Pula o cheerio pq a estática só traz a tela de Login Laranja
 
     async extractHeadless(page) {
         // A Shopee necessita de um Headless Extract dedicado
@@ -18,6 +19,11 @@ module.exports = {
                 const metaOgUrl = document.querySelector('meta[property="og:title"]');
                 return metaOgUrl ? metaOgUrl.content : '';
             });
+
+            // Se a Shopee mandou o título genérico de Bloqueio/Login ("Shopee Brasil..."), nós recusamos para não sujar o input!
+            if (nome && (nome.includes('Shopee Brasil |') || nome.includes('Faça Login'))) {
+                nome = ''; 
+            }
 
             preco = await page.evaluate(() => {
                 const el = document.querySelector('.pqy9al, .G27NVy');
