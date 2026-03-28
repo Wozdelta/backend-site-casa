@@ -55,12 +55,21 @@ async function processUrl(url) {
             }
         }
 
-        // Se o dominio exige Headless (ex: Shopee) ou se falhamos em capturar Nome e Preço
-        // Vamos engatilhar o Puppeteer (Motor Pesado e Lento, mas Implacavel)
-        if ((!extractedData.nome || !extractedData.preco) && adapter && adapter.useHeadless) {
-            console.log(`🤖 Camada 2: Dados insuficientes / Anti-bot detectado. Ligando Headless Browser para [${adapter.name}]...`);
-            const headlessData = await headless.extractWithBrowser(url, adapter);
-            extractedData = { ...extractedData, ...headlessData };
+        // Se o dominio exige Headless (ex: Shopee) ou se falhamos em capturar Nome e Preço (Defesa Implacável)
+        // Vamos engatilhar o Puppeteer (Motor Pesado e Lento, mas que lê a tela idêntica a um Humano real)
+        const needsHeadless = (!extractedData.nome || !extractedData.preco) 
+                              && (!adapter || adapter.useHeadless || adapter.forceHeadless || !adapter);
+        
+        if (needsHeadless) {
+            console.log(`🤖 Camada 2: Dados insuficientes / Anti-bot detectado. Ligando O Motor Universal Headless Browser...`);
+            // Passamos um adapter fake-generico se for null
+            const fallbackAdapter = adapter || { name: 'genérico-robusto', useHeadless: true };
+            const headlessData = await headless.extractWithBrowser(url, fallbackAdapter);
+            
+            // O Headless pode ter encontrado algo que a Camada 1 não achou
+            if (headlessData.nome) extractedData.nome = headlessData.nome;
+            if (headlessData.preco) extractedData.preco = headlessData.preco;
+            if (headlessData.imagem) extractedData.imagem = headlessData.imagem;
         }
 
         // Merge dos resultados

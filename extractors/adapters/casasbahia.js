@@ -3,7 +3,8 @@ const cheerio = require('cheerio');
 module.exports = {
     name: 'casasbahia',
     matchDomain: /casasbahia\.com\.br/,
-    useHeadless: false, // Tenta Rápido Estático primeiro
+    useHeadless: true, 
+    forceHeadless: true, 
     
     async extractStatic(html, genericData) {
         const $ = cheerio.load(html);
